@@ -12,6 +12,7 @@ func (b Buffer) ReaderChan(r io.Reader, sep string) (cr <-chan string) {
 	sepb := []byte(sep)
 	c := make(chan string)
 	go func(cs chan<- string) {
+		defer close(cs)
 		writeStart := 0
 		for {
 			if i := bytes.Index(b[:writeStart], sepb); i != -1 {
@@ -21,8 +22,10 @@ func (b Buffer) ReaderChan(r io.Reader, sep string) (cr <-chan string) {
 				writeStart -= i+1
 				continue
 			} else if r == nil {
-				msg := string([]byte(b[:writeStart]))
-				cs <- msg
+				if writeStart != 0 {
+					msg := string([]byte(b[:writeStart]))
+					cs <- msg
+				}
 				break
 			} else if writeStart == len(b) {
 				msg := string([]byte(b))
@@ -37,7 +40,6 @@ func (b Buffer) ReaderChan(r io.Reader, sep string) (cr <-chan string) {
 				writeStart += n
 			}
 		}
-		close(cs)
 	}(c)
 	return c
 }
