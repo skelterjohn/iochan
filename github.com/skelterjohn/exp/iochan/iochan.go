@@ -23,6 +23,10 @@ func (b Buffer) ReaderChan(r io.Reader, sep string) (cr <-chan string) {
 				msg := string([]byte(b[:writeStart]))
 				cs <- msg
 				break
+			} else if writeStart == len(b) {
+				msg := string([]byte(b))
+				writeStart = 0
+				cs <- msg
 			}
 			if r != nil {
 				n, err := r.Read(b[writeStart:])
