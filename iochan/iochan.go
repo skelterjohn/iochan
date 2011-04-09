@@ -1,6 +1,7 @@
 package iochan
 
 import (
+	"os"
 	"io"
 	"bytes"
 )
@@ -39,4 +40,15 @@ func (b Buffer) ReaderChan(r io.Reader, sep string) (cr <-chan string) {
 		close(cs)
 	}(c)
 	return c
+}
+
+func (b Buffer) FileLineChan(fpath string) (cr <-chan string) {
+	r, err := os.Open(fpath)
+	if err == nil {
+		cr = b.ReaderChan(r, "\n")
+	} else {
+		cr = make(chan string)
+		close(cr)
+	}
+	return
 }
