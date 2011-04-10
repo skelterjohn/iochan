@@ -16,7 +16,7 @@ func (b Buffer) ReaderChan(r io.Reader, sep string) (cr <-chan string) {
 		writeStart := 0
 		for {
 			if i := bytes.Index(b[:writeStart], sepb); i != -1 {
-				msg := string([]byte(b[:i]))
+				msg := string([]byte(b[:i+1]))
 				cs <- msg
 				copy(b[:writeStart-(i+1)], b[i+1:writeStart])
 				writeStart -= i+1
