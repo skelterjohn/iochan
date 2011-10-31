@@ -49,8 +49,9 @@ func (b Buffer) FileLineChan(fpath string) (cr <-chan string) {
 	if err == nil {
 		cr = b.ReaderChan(r, "\n")
 	} else {
-		cr = make(chan string)
-		close(cr)
+		c := make(chan string)
+		close(c)
+		cr = c
 	}
 	return
 }
