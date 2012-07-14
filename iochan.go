@@ -1,12 +1,16 @@
 package iochan
 
 import (
-	"os"
-	"io"
 	"bytes"
+	"io"
+	"os"
 )
 
 type Buffer []byte
+
+func ReaderChan(r io.Reader, sep string) (cr <-chan string) {
+	return make(Buffer, 2048).ReaderChan(r, sep)
+}
 
 func (b Buffer) ReaderChan(r io.Reader, sep string) (cr <-chan string) {
 	sepb := []byte(sep)
@@ -19,7 +23,7 @@ func (b Buffer) ReaderChan(r io.Reader, sep string) (cr <-chan string) {
 				msg := string([]byte(b[:i+1]))
 				cs <- msg
 				copy(b[:writeStart-(i+1)], b[i+1:writeStart])
-				writeStart -= i+1
+				writeStart -= i + 1
 				continue
 			} else if r == nil {
 				if writeStart != 0 {
@@ -42,6 +46,10 @@ func (b Buffer) ReaderChan(r io.Reader, sep string) (cr <-chan string) {
 		}
 	}(c)
 	return c
+}
+
+func FileLineChan(fpath string) (cr <-chan string) {
+	return make(Buffer, 2048).FileLineChan(fpath)
 }
 
 func (b Buffer) FileLineChan(fpath string) (cr <-chan string) {
