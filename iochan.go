@@ -8,16 +8,21 @@ import (
 
 type Buffer []byte
 
-func ReaderChan(r io.Reader, sep string) (cr <-chan string) {
+func ReaderChan(r io.Reader, sep string) (cr <-chan string, errs <-chan error) {
 	return make(Buffer, 2048).ReaderChan(r, sep)
 }
 
-func (b Buffer) ReaderChan(r io.Reader, sep string) (cr <-chan string) {
+func (b Buffer) ReaderChan(r io.Reader, sep string) (cr <-chan string, errs <-chan error) {
 	sepb := []byte(sep)
 	c := make(chan string)
-	go func(cs chan<- string) {
-		defer close(cs)
+	e := make(chan error)
+	go func(cs chan<- string, errs chan<- error) {
+		var rErr error
 		writeStart := 0
+
+		defer func() { errs <- rErr; close(errs) }()
+		defer close(cs)
+
 		for {
 			if i := bytes.Index(b[:writeStart], sepb); i != -1 {
 				msg := string([]byte(b[:i+1]))
@@ -40,26 +45,31 @@ func (b Buffer) ReaderChan(r io.Reader, sep string) (cr <-chan string) {
 				n, err := r.Read(b[writeStart:])
 				if err != nil {
 					r = nil
+					rErr = err
 				}
 				writeStart += n
 			}
 		}
-	}(c)
-	return c
+	}(c, e)
+	return c, e
 }
 
-func FileLineChan(fpath string) (cr <-chan string) {
+func FileLineChan(fpath string) (cr <-chan string, err <-chan error) {
 	return make(Buffer, 2048).FileLineChan(fpath)
 }
 
-func (b Buffer) FileLineChan(fpath string) (cr <-chan string) {
+func (b Buffer) FileLineChan(fpath string) (cr <-chan string, errs <-chan error) {
 	r, err := os.Open(fpath)
 	if err == nil {
-		cr = b.ReaderChan(r, "\n")
+		cr, errs = b.ReaderChan(r, "\n")
 	} else {
 		c := make(chan string)
 		close(c)
 		cr = c
+
+		e := make(chan error)
+		e <- err
+		close(e)
 	}
 	return
 }
